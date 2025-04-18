@@ -1,51 +1,110 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <title>Painel do Organizador</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css">
-  <script type="module" src="firebase-config.js"></script>
-  <script type="module" src="painel.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
+  <script src="firebase-config.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fff8e1;
+      padding: 20px;
+    }
+    h1 {
+      color: #d35400;
+    }
+    .contador {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .contador div {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+      min-width: 100px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    input, select {
+      padding: 5px;
+      margin-right: 10px;
+    }
+    .pedido {
+      background: white;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 5px;
+      box-shadow: 0 0 5px rgba(0,0,0,0.1);
+    }
+    .pedido .status-validado {
+      color: green;
+    }
+    .pedido .status-pendente {
+      color: red;
+    }
+  </style>
 </head>
 <body>
-  <nav>
-    <a href="index.html">📊 Painel</a>
-    <a href="cadastro.html">➕ Novo Pedido</a>
-    <a href="#" onclick="toggleModoEscuro()">🌙 Tema</a>
-    <a href="#" onclick="logout()">🚪 Sair</a>
-  </nav>
-
-  <h1>Painel do Organizador</h1>
-
-  <div class="resumo">
-    <div>Total: <strong id="totalPedidos">0</strong></div>
-    <div>Validados: <strong id="totalValidados">0</strong></div>
-    <div>Pendentes: <strong id="totalPendentes">0</strong></div>
+  <h1>Painel do Organizador (Tempo Real)</h1>
+  <div class="contador">
+    <div><strong>Total</strong><br><span id="totalPedidos">0</span></div>
+    <div><strong>Validados</strong><br><span id="totalValidados">0</span></div>
+    <div><strong>Pendentes</strong><br><span id="totalPendentes">0</span></div>
   </div>
+  <input type="text" id="buscaCPF" placeholder="Buscar CPF..." />
+  <select id="filtroStatus">
+    <option value="todos">Todos</option>
+    <option value="validado">Validados</option>
+    <option value="pendente">Pendentes</option>
+  </select>
+  <div id="listaPedidos"></div>
 
-  <div class="filtros">
-    <input type="text" id="buscaNome" placeholder="Buscar por nome">
-    <input type="text" id="buscaCPF" placeholder="Buscar por CPF">
-    <select id="filtroStatus">
-      <option value="todos">Todos</option>
-      <option value="pendente">Pendentes</option>
-      <option value="validado">Validados</option>
-    </select>
-    <button onclick="exportarCSV()">⬇️ CSV</button>
-    <button onclick="exportarPDF()">📄 PDF</button>
-  </div>
+  <script type="module">
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+    const db = getFirestore();
+    const lista = document.getElementById("listaPedidos");
+    const buscaCPF = document.getElementById("buscaCPF");
+    const filtroStatus = document.getElementById("filtroStatus");
 
-  <div id="listaPedidos">Carregando pedidos...</div>
+    let dados = [];
+    onSnapshot(collection(db, "pedidos"), (snapshot) => {
+      dados = [];
+      snapshot.forEach(doc => dados.push(...Object.values(doc.data())));
+      renderizar();
+    });
 
-  <script>
-    if (localStorage.getItem("autenticado") !== "true") {
-      window.location.href = "login.html";
+    function renderizar() {
+      const cpfFiltro = buscaCPF.value;
+      const statusFiltro = filtroStatus.value;
+      const filtrados = dados.filter(p => {
+        const cpf = p.cpf || "";
+        const status = p.status || "";
+        return (cpf.includes(cpfFiltro)) && (statusFiltro === "todos" || status === statusFiltro);
+      });
+
+      lista.innerHTML = "";
+      document.getElementById("totalPedidos").textContent = dados.length;
+      document.getElementById("totalValidados").textContent = dados.filter(p => p.status === "validado").length;
+      document.getElementById("totalPendentes").textContent = dados.filter(p => p.status === "pendente").length;
+
+      filtrados.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "pedido";
+        div.innerHTML = `
+          <strong>${p.evento?.nome || "-"}</strong><br>
+          CPF: ${p.cpf}<br>
+          Status: <span class="${p.status === "validado" ? "status-validado" : "status-pendente"}">${p.status}</span><br>
+          WhatsApp: ${p.whatsapp || "-"}
+        `;
+        lista.appendChild(div);
+      });
     }
-    function logout() {
-      localStorage.removeItem("autenticado");
-      window.location.href = "login.html";
-    }
+
+    [buscaCPF, filtroStatus].forEach(el => el.addEventListener("input", renderizar));
   </script>
 </body>
 </html>
