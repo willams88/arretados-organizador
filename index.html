@@ -1,26 +1,12 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Painel do Organizador</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="manifest" href="manifest.json">
-  <link rel="icon" href="icon-192.png">
-  <style>
-    body { font-family: Arial, sans-serif; background: #fff8dc; color: #333; padding: 2rem; }
-    h1 { color: #d35400; }
-    .card { background: #fff; border-radius: 10px; padding: 1rem; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-bottom: 1rem; }
-    .status { font-weight: bold; }
-    #listaPedidos > div { margin: 0.5rem 0; }
-  </style>
-</head>
-<body>
-  <h1>Painel do Organizador (Tempo Real)</h1>
-  <div id="listaPedidos" class="card">Carregando dados...</div>
-
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCgFN0lCf0xeJaLnWkTfjAbvDBwQXxXe0A",
@@ -32,19 +18,141 @@
     const db = getFirestore(app);
 
     const lista = document.getElementById("listaPedidos");
+    const audio = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3");
 
-    try {
-      onSnapshot(collection(db, "pedidos"), (snapshot) => {
-        lista.innerHTML = "";
-        snapshot.forEach(doc => {
-          const p = doc.data();
-          const div = document.createElement("div");
-          div.innerHTML = `<div class="card"><strong>${p.nome}</strong><br>CPF: ${p.cpf}<br>Status: <span class="status">${p.status}</span></div>`;
-          lista.appendChild(div);
-        });
+    const mostrarAnimacao = () => {
+      const anim = document.createElement("div");
+      anim.className = "animacao-validado";
+      anim.innerHTML = "✅ Ingresso Validado!";
+      document.body.appendChild(anim);
+      setTimeout(() => anim.remove(), 3000);
+    };
+
+    onSnapshot(collection(db, "pedidos"), (snapshot) => {
+      lista.innerHTML = "";
+      snapshot.forEach(docSnap => {
+        const pedido = docSnap.data();
+        const div = document.createElement("div");
+        div.className = "card";
+
+        div.innerHTML = `
+          <strong>${pedido.nome}</strong><br>
+          CPF: ${pedido.cpf}<br>
+          Pedido: ${docSnap.id}<br>
+          Status: <strong>${pedido.status}</strong>
+        `;
+
+        if (pedido.status === "pendente") {
+          const botao = document.createElement("button");
+          botao.className = "botao-validar";
+          botao.textContent = "Validar";
+          botao.onclick = async () => {
+            await updateDoc(doc(db, "pedidos", docSnap.id), { status: "validado" });
+            audio.play();
+            mostrarAnimacao();
+          };
+          div.appendChild(botao);
+        }
+
+        lista.appendChild(div);
       });
-    } catch (error) {
-      lista.innerHTML = '<span style="color:red">Erro ao carregar os dados: ' + error.message + '</span>';
+    });
+
+    window.validarQRCode = async (pedidoId) => {
+      if (!pedidoId) return alert("Código inválido");
+      const pedidoRef = doc(db, "pedidos", pedidoId);
+      await updateDoc(pedidoRef, { status: "validado" });
+      audio.play();
+      mostrarAnimacao();
+    };
+  </script>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fff8dc;
+      padding: 30px;
+    }
+    h1 {
+      color: #d64a00;
+    }
+    .card {
+      background: white;
+      padding: 1rem;
+      border-radius: 10px;
+      margin-bottom: 1rem;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .botao-validar {
+      padding: 6px 12px;
+      margin-top: 10px;
+      background-color: #2ecc71;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .qr-btn {
+      padding: 8px 16px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      margin-bottom: 20px;
+      cursor: pointer;
+    }
+    #leitor {
+      width: 100%;
+      max-width: 400px;
+      margin: 20px 0;
+    }
+    .animacao-validado {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #2ecc71;
+      color: white;
+      padding: 20px 40px;
+      font-size: 1.5rem;
+      border-radius: 10px;
+      box-shadow: 0 0 15px rgba(0,0,0,0.2);
+      z-index: 1000;
+      animation: fadeout 3s ease forwards;
+    }
+    @keyframes fadeout {
+      0% { opacity: 1; }
+      80% { opacity: 1; }
+      100% { opacity: 0; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Painel do Organizador (Tempo Real)</h1>
+
+  <button class="qr-btn" onclick="iniciarLeitor()">📷 Validar por QR Code</button>
+  <div id="leitor"></div>
+  <div id="listaPedidos"></div>
+
+  <script>
+    function iniciarLeitor() {
+      const qr = new Html5Qrcode("leitor");
+      qr.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: 250 },
+        async (decodedText) => {
+          const url = new URL(decodedText);
+          const pedido = url.searchParams.get("pedido");
+          if (pedido) {
+            await window.validarQRCode(pedido);
+            qr.stop();
+            document.getElementById("leitor").innerHTML = "";
+          }
+        },
+        (error) => {
+          console.warn("QR Scan error", error);
+        }
+      );
     }
   </script>
 </body>
