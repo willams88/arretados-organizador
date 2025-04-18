@@ -2,158 +2,41 @@
 <html lang="pt-br">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Painel do Organizador</title>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyCgFN0lCf0xeJaLnWkTfjAbvDBwQXxXe0A",
-      authDomain: "arretados-ingressos-app.firebaseapp.com",
-      projectId: "arretados-ingressos-app"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    const lista = document.getElementById("listaPedidos");
-    const audio = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3");
-
-    const mostrarAnimacao = () => {
-      const anim = document.createElement("div");
-      anim.className = "animacao-validado";
-      anim.innerHTML = "✅ Ingresso Validado!";
-      document.body.appendChild(anim);
-      setTimeout(() => anim.remove(), 3000);
-    };
-
-    onSnapshot(collection(db, "pedidos"), (snapshot) => {
-      lista.innerHTML = "";
-      snapshot.forEach(docSnap => {
-        const pedido = docSnap.data();
-        const div = document.createElement("div");
-        div.className = "card";
-
-        div.innerHTML = `
-          <strong>${pedido.nome}</strong><br>
-          CPF: ${pedido.cpf}<br>
-          Pedido: ${docSnap.id}<br>
-          Status: <strong>${pedido.status}</strong>
-        `;
-
-        if (pedido.status === "pendente") {
-          const botao = document.createElement("button");
-          botao.className = "botao-validar";
-          botao.textContent = "Validar";
-          botao.onclick = async () => {
-            await updateDoc(doc(db, "pedidos", docSnap.id), { status: "validado" });
-            audio.play();
-            mostrarAnimacao();
-          };
-          div.appendChild(botao);
-        }
-
-        lista.appendChild(div);
-      });
-    });
-
-    window.validarQRCode = async (pedidoId) => {
-      if (!pedidoId) return alert("Código inválido");
-      const pedidoRef = doc(db, "pedidos", pedidoId);
-      await updateDoc(pedidoRef, { status: "validado" });
-      audio.play();
-      mostrarAnimacao();
-    };
-  </script>
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #fff8dc;
-      padding: 30px;
-    }
-    h1 {
-      color: #d64a00;
-    }
-    .card {
-      background: white;
-      padding: 1rem;
-      border-radius: 10px;
-      margin-bottom: 1rem;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .botao-validar {
-      padding: 6px 12px;
-      margin-top: 10px;
-      background-color: #2ecc71;
-      color: white;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-    }
-    .qr-btn {
-      padding: 8px 16px;
-      background: #3498db;
-      color: white;
-      border: none;
-      border-radius: 6px;
-      margin-bottom: 20px;
-      cursor: pointer;
-    }
-    #leitor {
-      width: 100%;
-      max-width: 400px;
-      margin: 20px 0;
-    }
-    .animacao-validado {
-      position: fixed;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      background: #2ecc71;
-      color: white;
-      padding: 20px 40px;
-      font-size: 1.5rem;
-      border-radius: 10px;
-      box-shadow: 0 0 15px rgba(0,0,0,0.2);
-      z-index: 1000;
-      animation: fadeout 3s ease forwards;
-    }
-    @keyframes fadeout {
-      0% { opacity: 1; }
-      80% { opacity: 1; }
-      100% { opacity: 0; }
-    }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="stylesheet" href="style.css" />
+  <script src="firebase-config.js" type="module"></script>
+  <script src="painel.js" type="module" defer></script>
 </head>
 <body>
-  <h1>Painel do Organizador (Tempo Real)</h1>
+  <nav>
+    <a href="index.html">📊 Painel</a>
+    <a href="cadastro.html">➕ Novo Pedido</a>
+    <a href="#" onclick="toggleModoEscuro()">🌙 Alternar Tema</a>
+  </nav>
 
-  <button class="qr-btn" onclick="iniciarLeitor()">📷 Validar por QR Code</button>
-  <div id="leitor"></div>
-  <div id="listaPedidos"></div>
+  <header>
+    <h1>Painel do Organizador</h1>
+    <div class="resumo">
+      <span>Total: <strong id="totalTodos">0</strong></span>
+      <span>Validados: <strong id="totalValidados">0</strong></span>
+      <span>Pendentes: <strong id="totalPendentes">0</strong></span>
+    </div>
+  </header>
 
-  <script>
-    function iniciarLeitor() {
-      const qr = new Html5Qrcode("leitor");
-      qr.start(
-        { facingMode: "environment" },
-        { fps: 10, qrbox: 250 },
-        async (decodedText) => {
-          const url = new URL(decodedText);
-          const pedido = url.searchParams.get("pedido");
-          if (pedido) {
-            await window.validarQRCode(pedido);
-            qr.stop();
-            document.getElementById("leitor").innerHTML = "";
-          }
-        },
-        (error) => {
-          console.warn("QR Scan error", error);
-        }
-      );
-    }
-  </script>
+  <section class="filtros">
+    <input type="text" id="buscaNome" placeholder="Buscar por nome..." />
+    <input type="text" id="buscaCPF" placeholder="Buscar por CPF..." />
+    <select id="filtroStatus">
+      <option value="todos">Todos os Status</option>
+      <option value="pendente">Pendente</option>
+      <option value="validado">Validado</option>
+    </select>
+    <button onclick="exportarCSV()">⬇️ CSV</button>
+    <button onclick="exportarPDF()">📄 PDF</button>
+  </section>
+
+  <main id="listaPedidos">Carregando pedidos...</main>
 </body>
 </html>

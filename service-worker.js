@@ -1,21 +1,44 @@
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open('arretados-painel').then(cache => {
-      return cache.addAll([
-        './',
-        './painel.html',
-        './manifest.json',
-        './icon-192.png',
-        './icon-512.png'
-      ]);
+const CACHE_NAME = "arretados-organizador-v1";
+const urlsToCache = [
+  "/",
+  "/index.html",
+  "/cadastro.html",
+  "/style.css",
+  "/firebase-config.js",
+  "/painel.js",
+  "/manifest.json",
+  "/login.html"
+];
+
+// Instala o Service Worker e armazena os arquivos
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.addAll(urlsToCache);
     })
   );
 });
 
-self.addEventListener('fetch', e => {
-  e.respondWith(
-    caches.match(e.request).then(response => {
-      return response || fetch(e.request);
+// Ativa e limpa caches antigos se necessário
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) =>
+      Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            return caches.delete(cache);
+          }
+        })
+      )
+    )
+  );
+});
+
+// Intercepta requisições e serve do cache se offline
+self.addEventListener("fetch", (event) => {
+  event.respondWith(
+    caches.match(event.request).then((resposta) => {
+      return resposta || fetch(event.request);
     })
   );
 });

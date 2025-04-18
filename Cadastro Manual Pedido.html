@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Cadastrar Pedido Manualmente</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fff8e1;
+      padding: 2rem;
+      margin: 0;
+    }
+    h2 {
+      color: #d35400;
+    }
+    nav {
+      background: #fdd835;
+      padding: 10px;
+      display: flex;
+      gap: 10px;
+      border-radius: 0 0 10px 10px;
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+    }
+    nav a {
+      background: #039be5;
+      color: white;
+      text-decoration: none;
+      padding: 8px 12px;
+      border-radius: 5px;
+      font-weight: bold;
+    }
+    .topo {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin: 20px 0 10px 0;
+    }
+    .topo a {
+      background: #0277bd;
+      color: white;
+      text-decoration: none;
+      padding: 10px 15px;
+      border-radius: 6px;
+      font-weight: bold;
+    }
+    form {
+      background: #fff;
+      padding: 20px;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      max-width: 400px;
+    }
+    label {
+      font-weight: bold;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      margin-bottom: 15px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+    button {
+      background: #2e7d32;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover {
+      background: #1b5e20;
+    }
+  </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCgFN0lCf0xeJaLnWkTfjAbvDBwQXxXe0A",
+      authDomain: "arretados-ingressos-app.firebaseapp.com",
+      projectId: "arretados-ingressos-app"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    async function cadastrarPedido() {
+      const nome = document.getElementById("nome").value;
+      const cpf = document.getElementById("cpf").value;
+      const genero = document.getElementById("genero").value;
+      const evento = document.getElementById("evento").value;
+      const whatsapp = document.getElementById("whatsapp").value;
+      const status = document.getElementById("status").value;
+
+      if (!nome || !cpf || !evento) return alert("Preencha os campos obrigatórios!");
+
+      await addDoc(collection(db, "pedidos"), {
+        nome,
+        cpf,
+        genero,
+        evento: { nome: evento },
+        whatsapp,
+        status
+      });
+
+      alert("✅ Pedido cadastrado com sucesso!");
+      document.getElementById("form").reset();
+    }
+
+    window.cadastrarPedido = cadastrarPedido;
+  </script>
+</head>
+<body>
+  <nav>
+    <a href="index.html">📊 Painel</a>
+    <a href="cadastro.html">➕ Novo Pedido</a>
+  </nav>
+
+  <div class="topo">
+    <h2>Cadastrar Novo Pedido</h2>
+    <a href="index.html">⬅ Voltar ao Painel</a>
+  </div>
+
+  <form id="form" onsubmit="event.preventDefault(); cadastrarPedido();">
+    <label>Nome: *</label>
+    <input id="nome" required>
+
+    <label>CPF: *</label>
+    <input id="cpf" required>
+
+    <label>Gênero:</label>
+    <select id="genero">
+      <option value="masculino">Masculino</option>
+      <option value="feminino">Feminino</option>
+    </select>
+
+    <label>Evento: *</label>
+    <input id="evento" placeholder="Nome do Evento" required>
+
+    <label>WhatsApp:</label>
+    <input id="whatsapp" placeholder="ex: 43991289991">
+
+    <label>Status:</label>
+    <select id="status">
+      <option value="pendente">Pendente</option>
+      <option value="validado">Validado</option>
+    </select>
+
+    <button type="submit">Salvar Pedido</button>
+  </form>
+</body>
+</html>

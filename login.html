@@ -1,1 +1,50 @@
-<!DOCTYPE html><html><head><title>Login</title></head><body><h1>Login</h1></body></html>
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login do Organizador</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .login-container {
+      max-width: 400px;
+      margin: 100px auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 10px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    body.dark .login-container {
+      background: #1e1e1e;
+    }
+    h1 {
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container">
+    <h1>Organizador</h1>
+    <label>Senha de acesso:</label>
+    <input type="password" id="senha" placeholder="Digite a senha" />
+    <button onclick="logar()">Entrar</button>
+  </div>
+
+  <script>
+    function logar() {
+      const senha = document.getElementById("senha").value;
+      if (senha === "arretados2024") {
+        localStorage.setItem("autenticado", "true");
+        window.location.href = "index.html";
+      } else {
+        alert("❌ Senha incorreta!");
+      }
+    }
+
+    // Redireciona se já estiver logado
+    if (localStorage.getItem("autenticado") === "true") {
+      window.location.href = "index.html";
+    }
+  </script>
+</body>
+</html>
