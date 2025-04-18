@@ -2,29 +2,50 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Arretados - Painel do Organizador</title>
+  <title>Painel do Organizador</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icon-192.png">
   <style>
-    body { font-family: Arial, sans-serif; background: #fff7dc; padding: 2rem; text-align: center; }
-    h1 { color: #f26522; }
-    a {
-      display: block;
-      margin: 1rem auto;
-      padding: 1rem 2rem;
-      background: #f26522;
-      color: white;
-      text-decoration: none;
-      border-radius: 8px;
-      max-width: 300px;
-    }
-    a:hover {
-      background: #d35400;
-    }
+    body { font-family: Arial, sans-serif; background: #fff8dc; color: #333; padding: 2rem; }
+    h1 { color: #d35400; }
+    .card { background: #fff; border-radius: 10px; padding: 1rem; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-bottom: 1rem; }
+    .status { font-weight: bold; }
+    #listaPedidos > div { margin: 0.5rem 0; }
   </style>
 </head>
 <body>
-  <h1>Arretados - Painel do Organizador</h1>
-  <a href="painel_organizador.html">📊 Acessar Painel Principal</a>
-  <a href="cadastro.html">📝 Tela de Cadastro</a>
-  <a href="login.html">🔐 Tela de Login</a>
+  <h1>Painel do Organizador (Tempo Real)</h1>
+  <div id="listaPedidos" class="card">Carregando dados...</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCgFN0lCf0xeJaLnWkTfjAbvDBwQXxXe0A",
+      authDomain: "arretados-ingressos-app.firebaseapp.com",
+      projectId: "arretados-ingressos-app"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const lista = document.getElementById("listaPedidos");
+
+    try {
+      onSnapshot(collection(db, "pedidos"), (snapshot) => {
+        lista.innerHTML = "";
+        snapshot.forEach(doc => {
+          const p = doc.data();
+          const div = document.createElement("div");
+          div.innerHTML = `<div class="card"><strong>${p.nome}</strong><br>CPF: ${p.cpf}<br>Status: <span class="status">${p.status}</span></div>`;
+          lista.appendChild(div);
+        });
+      });
+    } catch (error) {
+      lista.innerHTML = '<span style="color:red">Erro ao carregar os dados: ' + error.message + '</span>';
+    }
+  </script>
 </body>
 </html>
