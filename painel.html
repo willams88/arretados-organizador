@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <title>Painel Organizador Completo</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #fef8e0; padding: 1rem; }
+    h1 { color: #e65100; }
+    .dashboard { display: flex; gap: 1rem; margin-bottom: 1rem; }
+    .card { background: white; border-radius: 8px; padding: 1rem; box-shadow: 0 0 5px #ccc; flex: 1; text-align: center; }
+    .filtros { margin-bottom: 1rem; }
+    .pedido { background: #fff; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; border: 1px solid #ddd; }
+    .btn { padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; }
+    .btn-validar { background-color: green; }
+    .btn-whats { background-color: #25d366; margin-left: 5px; }
+    .btn-export { background-color: #2196f3; margin-right: 5px; }
+    .btn-detalhes { background-color: #6a1b9a; margin-left: 5px; }
+  </style>
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+  <meta name="theme-color" content="#e65100">
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+
+</head>
+<body>
+
+  <h1>Painel do Organizador</h1>
+
+  <div class="dashboard">
+    <div class="card"><h3>Total</h3><div id="total">0</div></div>
+    <div class="card"><h3>Validados</h3><div id="validados">0</div></div>
+    <div class="card"><h3>Pendentes</h3><div id="pendentes">0</div></div>
+  </div>
+
+  <div class="filtros">
+    <label>Evento:
+      <select id="filtroEvento">
+        <option value="">Todos</option>
+        <option value="Tardizinha dos Arretados">Tardizinha dos Arretados</option>
+      </select>
+    </label>
+    <label>Cidade:
+      <input type="text" id="filtroCidade" placeholder="Digite a cidade" />
+    </label>
+    <label>Data:
+      <input type="date" id="filtroData" />
+    </label>
+    <button class="btn btn-export" onclick="exportarCSV()">📤 Exportar CSV</button>
+    <button class="btn btn-export" onclick="exportarPDF()">📄 Exportar PDF</button>
+  </div>
+
+  <div id="listaPedidos">Carregando pedidos...</div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCgFN0lCf0xeJaLnWkTfjAbvDBwQXxXe0A",
+      authDomain: "arretados-ingressos-app.firebaseapp.com",
+      projectId: "arretados-ingressos-app"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const lista = document.getElementById("listaPedidos");
+    let dadosPedidos = [];
+
+    function aplicarFiltros(pedidos) {
+      const evento = document.getElementById("filtroEvento").value;
+      const cidade = document.getElementById("filtroCidade").value.toLowerCase();
+      const data = document.getElementById("filtroData").value;
+
+      return pedidos.filter(p => {
+        return (!evento || p.evento === evento)
+            && (!cidade || (p.cidade && p.cidade.toLowerCase().includes(cidade)))
+            && (!data || (p.data && p.data === data));
+      });
+    }
+
+    function atualizarContadores(pedidos) {
+      document.getElementById("total").textContent = pedidos.length;
+      document.getElementById("validados").textContent = pedidos.filter(p => p.validado).length;
+      document.getElementById("pendentes").textContent = pedidos.filter(p => !p.validado).length;
+    }
+
+    function renderizarPedidos(pedidos) {
+      lista.innerHTML = "";
+      pedidos.forEach(p => {
+        const div = document.createElement("div");
+        div.className = "pedido";
+        div.innerHTML = `
+          <p><strong>Nome:</strong> ${p.nome}</p>
+          <p><strong>CPF:</strong> ${p.cpf}</p>
+          <p><strong>Pedido:</strong> ${p.pedido}</p>
+          <p><strong>Evento:</strong> ${p.evento || '-'}</p>
+          <p><strong>Status:</strong> <span id="status-${p.id}">${p.validado ? "✅ Validado" : "❌ Pendente"}</span></p>
+          <button class="btn btn-validar" onclick="validar('${p.id}')">Validar</button>
+          <a class="btn btn-whats" href="https://wa.me/55${p.whats}?text=Seu ingresso foi validado. Pedido ${p.pedido}" target="_blank">WhatsApp</a>
+          <button class="btn btn-detalhes" onclick="mostrarDetalhes(${JSON.stringify(p).replace(/"/g, '&quot;')})">Ver detalhes</button>
+        `;
+        lista.appendChild(div);
+      });
+    }
+
+    function validar(id) {
+      db.collection("pedidos").doc(id).update({ validado: true });
+      document.getElementById("status-" + id).innerText = "✅ Validado";
+    }
+
+    function exportarCSV() {
+      let csv = "Nome,CPF,Pedido,Evento,Status\n";
+      const pedidos = aplicarFiltros(dadosPedidos);
+      pedidos.forEach(p => {
+        csv += `"${p.nome}","${p.cpf}","${p.pedido}","${p.evento}","${p.validado ? 'Validado' : 'Pendente'}"\n`;
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "pedidos.csv";
+      link.click();
+    }
+
+    function exportarPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.setFontSize(12);
+      let y = 10;
+      const pedidos = aplicarFiltros(dadosPedidos);
+      pedidos.forEach(p => {
+        doc.text(`Nome: ${p.nome} | CPF: ${p.cpf} | Pedido: ${p.pedido} | ${p.validado ? '✅' : '❌'}`, 10, y);
+        y += 8;
+      });
+      doc.save("pedidos.pdf");
+    }
+
+    function mostrarDetalhes(p) {
+      alert(
+        `Nome: ${p.nome}\nGênero: ${p.genero}\nPedido: ${p.pedido}\nCPF: ${p.cpf}\nEvento: ${p.evento}\nStatus: ${p.validado ? 'Validado' : 'Pendente'}`
+      );
+    }
+
+    db.collection("pedidos").onSnapshot(snapshot => {
+      const pedidos = [];
+      snapshot.forEach(doc => pedidos.push({ ...doc.data(), id: doc.id }));
+      dadosPedidos = pedidos;
+      const filtrados = aplicarFiltros(pedidos);
+      atualizarContadores(filtrados);
+      renderizarPedidos(filtrados);
+    });
+
+    document.getElementById("filtroEvento").onchange =
+    document.getElementById("filtroCidade").oninput =
+    document.getElementById("filtroData").onchange = () => {
+      const filtrados = aplicarFiltros(dadosPedidos);
+      atualizarContadores(filtrados);
+      renderizarPedidos(filtrados);
+    };
+  </script>
+
+  <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+  <script>
+    firebase.auth().onAuthStateChanged(user => {
+      if (!user) window.location.href = "login.html";
+    });
+  </script>
+</body>
+</html>

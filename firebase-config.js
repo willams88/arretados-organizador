@@ -1,0 +1,1 @@
+export const firebaseConfig = { apiKey: 'SUA_API_KEY', projectId: 'arretados-ingressos-app' };
