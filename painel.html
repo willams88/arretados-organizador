@@ -97,6 +97,36 @@
       audio.play();
       mostrarAnimacao();
     };
+
+    window.exportarCSV = () => {
+      const linhas = ["Pedido,Nome,CPF,Status"];
+      todosPedidos.forEach(doc => {
+        const d = doc.data();
+        linhas.push(`${doc.id},${d.nome},${d.cpf},${d.status}`);
+      });
+      const blob = new Blob([linhas.join("\n")], { type: "text/csv" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "pedidos.csv";
+      link.click();
+    };
+
+    window.exportarPDF = () => {
+      const win = window.open("", "", "width=800,height=600");
+      const html = `
+        <html><head><title>Relatório</title></head><body>
+        <h2>Relatório de Pedidos</h2>
+        <table border='1' cellpadding='6' style='border-collapse: collapse;'>
+        <tr><th>Pedido</th><th>Nome</th><th>CPF</th><th>Status</th></tr>
+        ${todosPedidos.map(doc => {
+          const d = doc.data();
+          return `<tr><td>${doc.id}</td><td>${d.nome}</td><td>${d.cpf}</td><td>${d.status}</td></tr>`;
+        }).join("")}
+        </table></body></html>`;
+      win.document.write(html);
+      win.document.close();
+      win.print();
+    };
   </script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
@@ -123,6 +153,18 @@
       padding: 8px;
       border-radius: 6px;
       border: 1px solid #ccc;
+    }
+    .exportar {
+      margin: 10px 0;
+    }
+    .exportar button {
+      padding: 6px 12px;
+      margin-right: 10px;
+      background-color: #6a1b9a;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
     }
     .card {
       background: white;
@@ -186,6 +228,11 @@
 
   <div class="busca">
     <input type="text" id="buscaPedido" placeholder="🔎 Buscar por nome, CPF ou pedido" />
+  </div>
+
+  <div class="exportar">
+    <button onclick="exportarCSV()">⬇️ Exportar CSV</button>
+    <button onclick="exportarPDF()">🖨️ Exportar PDF</button>
   </div>
 
   <button class="qr-btn" onclick="iniciarLeitor()">📷 Validar por QR Code</button>
