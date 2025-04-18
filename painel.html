@@ -18,11 +18,13 @@
     const db = getFirestore(app);
 
     const lista = document.getElementById("listaPedidos");
+    const vendidosEl = document.getElementById("totalVendidos");
+    const validadosEl = document.getElementById("totalValidados");
+    const pendentesEl = document.getElementById("totalPendentes");
+    const inputBusca = document.getElementById("buscaPedido");
     const audio = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3");
 
-    const vendidosSpan = document.getElementById("vendidos");
-    const validadosSpan = document.getElementById("validados");
-    const pendentesSpan = document.getElementById("pendentes");
+    let todosPedidos = [];
 
     const mostrarAnimacao = () => {
       const anim = document.createElement("div");
@@ -32,23 +34,23 @@
       setTimeout(() => anim.remove(), 3000);
     };
 
-    onSnapshot(collection(db, "pedidos"), (snapshot) => {
-      let vendidos = 0, validados = 0, pendentes = 0;
+    const renderizarPedidos = (dados) => {
+      let total = 0, validados = 0, pendentes = 0;
       lista.innerHTML = "";
 
-      snapshot.forEach(docSnap => {
-        vendidos++;
+      dados.forEach(docSnap => {
+        total++;
         const pedido = docSnap.data();
+        const id = docSnap.id;
         if (pedido.status === "validado") validados++;
-        if (pedido.status === "pendente") pendentes++;
+        else pendentes++;
 
         const div = document.createElement("div");
         div.className = "card";
-
         div.innerHTML = `
           <strong>${pedido.nome}</strong><br>
           CPF: ${pedido.cpf}<br>
-          Pedido: ${docSnap.id}<br>
+          Pedido: ${id}<br>
           Status: <strong>${pedido.status}</strong>
         `;
 
@@ -57,7 +59,7 @@
           botao.className = "botao-validar";
           botao.textContent = "Validar";
           botao.onclick = async () => {
-            await updateDoc(doc(db, "pedidos", docSnap.id), { status: "validado" });
+            await updateDoc(doc(db, "pedidos", id), { status: "validado" });
             audio.play();
             mostrarAnimacao();
           };
@@ -67,9 +69,25 @@
         lista.appendChild(div);
       });
 
-      vendidosSpan.textContent = vendidos;
-      validadosSpan.textContent = validados;
-      pendentesSpan.textContent = pendentes;
+      vendidosEl.textContent = total;
+      validadosEl.textContent = validados;
+      pendentesEl.textContent = pendentes;
+    };
+
+    onSnapshot(collection(db, "pedidos"), (snapshot) => {
+      todosPedidos = snapshot.docs;
+      renderizarPedidos(todosPedidos);
+    });
+
+    inputBusca.addEventListener("input", (e) => {
+      const termo = e.target.value.toLowerCase();
+      const filtrados = todosPedidos.filter(doc => {
+        const data = doc.data();
+        return doc.id.includes(termo) ||
+               data.nome.toLowerCase().includes(termo) ||
+               data.cpf.includes(termo);
+      });
+      renderizarPedidos(filtrados);
     });
 
     window.validarQRCode = async (pedidoId) => {
@@ -93,13 +111,18 @@
     .contadores {
       display: flex;
       gap: 20px;
-      margin-bottom: 20px;
-    }
-    .contador {
-      background: #eee;
-      padding: 10px 20px;
-      border-radius: 10px;
+      margin-bottom: 10px;
       font-size: 1.1rem;
+    }
+    .busca {
+      margin: 15px 0;
+    }
+    .busca input {
+      width: 100%;
+      max-width: 400px;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
     }
     .card {
       background: white;
@@ -156,9 +179,13 @@
   <h1>Painel do Organizador (Tempo Real)</h1>
 
   <div class="contadores">
-    <div class="contador">🎟️ Vendidos: <span id="vendidos">0</span></div>
-    <div class="contador">✅ Validados: <span id="validados">0</span></div>
-    <div class="contador">⏳ Pendentes: <span id="pendentes">0</span></div>
+    <div>🎟️ Vendidos: <strong id="totalVendidos">0</strong></div>
+    <div>✅ Validados: <strong id="totalValidados">0</strong></div>
+    <div>⏳ Pendentes: <strong id="totalPendentes">0</strong></div>
+  </div>
+
+  <div class="busca">
+    <input type="text" id="buscaPedido" placeholder="🔎 Buscar por nome, CPF ou pedido" />
   </div>
 
   <button class="qr-btn" onclick="iniciarLeitor()">📷 Validar por QR Code</button>
