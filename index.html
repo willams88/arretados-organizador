@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -8,12 +9,18 @@
   <link rel="stylesheet" href="style.css" />
   <script src="firebase-config.js" type="module"></script>
   <script src="painel.js" type="module" defer></script>
+  <script>
+    if (localStorage.getItem("autenticado") !== "true") {
+      window.location.href = "login.html";
+    }
+  </script>
 </head>
 <body>
   <nav>
     <a href="index.html">📊 Painel</a>
     <a href="cadastro.html">➕ Novo Pedido</a>
     <a href="#" onclick="toggleModoEscuro()">🌙 Alternar Tema</a>
+    <a href="#" onclick="logout()">🚪 Sair</a>
   </nav>
 
   <header>
@@ -38,5 +45,12 @@
   </section>
 
   <main id="listaPedidos">Carregando pedidos...</main>
+
+  <script>
+    function logout() {
+      localStorage.removeItem("autenticado");
+      window.location.href = "login.html";
+    }
+  </script>
 </body>
 </html>
