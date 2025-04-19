@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel do Organizador</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrious@4.0.2/dist/qrious.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      background: #fff1c6;
+      font-family: Arial;
+      padding: 20px;
+    }
+    body.dark-mode {
+      background: #121212;
+      color: #eee;
+    }
+    h1 {
+      color: #d35400;
+    }
+    .modo-btn {
+      background: #333;
+      color: #fff;
+      border: none;
+      padding: 6px 10px;
+      margin-bottom: 10px;
+    }
+    .filtros input, .filtros select {
+      padding: 6px;
+      margin: 4px;
+    }
+    .totais {
+      display: flex;
+      gap: 20px;
+      margin: 10px 0;
+    }
+    .totais div {
+      background: white;
+      padding: 10px;
+      border-radius: 8px;
+      min-width: 70px;
+      text-align: center;
+    }
+    .cards {
+      margin-top: 10px;
+    }
+    .card {
+      background: white;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+      box-shadow: 0 0 4px rgba(0,0,0,0.1);
+    }
+    button {
+      margin: 4px;
+      padding: 6px 10px;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      cursor: pointer;
+    }
+    .whatsapp {
+      background: #2ecc71;
+    }
+    .excluir {
+      background: #e74c3c;
+    }
+    .pdf {
+      background: #3498db;
+    }
+  </style>
+</head>
+<body>
+  <button class="modo-btn" onclick="document.body.classList.toggle('dark-mode')">🌗 Modo Escuro</button>
+  <h1>Painel do Organizador</h1>
+
+  <div class="filtros">
+    <input id="buscaCPF" placeholder="Buscar CPF...">
+    <input id="buscaNome" placeholder="Buscar Nome...">
+    <input id="buscaData" placeholder="Data do Evento...">
+    <input id="buscaLocal" placeholder="Local do Evento...">
+    <select id="filtroStatus">
+      <option value="todos">Todos</option>
+      <option value="pendente">Pendente</option>
+      <option value="validado">Validado</option>
+    </select>
+  </div>
+
+  <div class="totais">
+    <div>Total<br><strong id="totalPedidos">0</strong></div>
+    <div>Validados<br><strong id="totalValidados">0</strong></div>
+    <div>Pendentes<br><strong id="totalPendentes">0</strong></div>
+    <button class="pdf" onclick="gerarRelatorioPDF()">📄 Exportar PDF</button>
+  </div>
+
+  <div id="listaPedidos" class="cards"></div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js";
+    import { getFirestore, collection, onSnapshot, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCgFN0lCf0xeJaLnWkTfjAbvDBwQXxXe0A",
+      authDomain: "arretados-ingressos-app.firebaseapp.com",
+      projectId: "arretados-ingressos-app"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const lista = document.getElementById("listaPedidos");
+    const campos = {
+      cpf: document.getElementById("buscaCPF"),
+      nome: document.getElementById("buscaNome"),
+      data: document.getElementById("buscaData"),
+      local: document.getElementById("buscaLocal"),
+      status: document.getElementById("filtroStatus")
+    };
+
+    let dadosCache = [];
+
+    onSnapshot(collection(db, "pedidos"), (snapshot) => {
+      dadosCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      document.getElementById("totalPedidos").textContent = dadosCache.length;
+      document.getElementById("totalValidados").textContent = dadosCache.filter(p => p.evento?.status === "validado").length;
+      document.getElementById("totalPendentes").textContent = dadosCache.filter(p => p.evento?.status === "pendente").length;
+      renderizar(dadosCache);
+    });
+
+    Object.values(campos).forEach(input => input.addEventListener("input", () => renderizar(dadosCache)));
+
+    function gerarCodigoSeguranca(cpf) {
+      return Math.abs(Math.sin(parseInt(cpf?.slice(0, 6) || "123456")) * 10000000).toString().padStart(6, '0').slice(0, 6);
+    }
+
+    function renderizar(dados) {
+      const filtro = dados.filter(p =>
+        p.cpf?.includes(campos.cpf.value) &&
+        p.evento?.nomecliente?.toLowerCase().includes(campos.nome.value.toLowerCase()) &&
+        p.evento?.data?.includes(campos.data.value) &&
+        p.evento?.local?.toLowerCase().includes(campos.local.value.toLowerCase()) &&
+        (campos.status.value === "todos" || p.evento?.status === campos.status.value)
+      );
+
+      const agrupados = {};
+      filtro.forEach(p => {
+        const evento = p.evento?.nomeEvento || "Outro Evento";
+        if (!agrupados[evento]) agrupados[evento] = [];
+        agrupados[evento].push(p);
+      });
+
+      lista.innerHTML = "";
+      Object.entries(agrupados).forEach(([evento, pedidos]) => {
+        const bloco = document.createElement("div");
+        bloco.innerHTML = `<h2 style="color:#d35400">${evento}</h2>`;
+        pedidos.forEach(p => {
+          const div = document.createElement("div");
+          div.className = "card";
+          const codigo = gerarCodigoSeguranca(p.cpf);
+          div.innerHTML = `
+            <strong>Nome:</strong> ${p.evento.nomecliente}<br>
+            <strong>CPF:</strong> ${p.cpf}<br>
+            <strong>Data:</strong> ${p.evento.data}<br>
+            <strong>Local:</strong> ${p.evento.local}<br>
+            <strong>Status:</strong> <span style="color:${p.evento.status === 'validado' ? 'green' : 'red'}">${p.evento.status}</span><br>
+            <strong>Código de Segurança:</strong> <span style="color:purple">${codigo}</span><br>
+            <canvas id="qr-${p.id}"></canvas>
+          `;
+
+          const botaoZap = document.createElement("button");
+          botaoZap.className = "whatsapp";
+          botaoZap.textContent = "📩 Reenviar por WhatsApp";
+          botaoZap.onclick = () => {
+            const num = p.evento.whatsapp?.replace(/\D/g, "");
+            const texto = `Pedido: ${p.id}\nCódigo: ${codigo}\nNome: ${p.evento.nomecliente}`;
+            if (num) window.open(`https://wa.me/55${num}?text=${encodeURIComponent(texto)}`, "_blank");
+          };
+
+          const botaoDel = document.createElement("button");
+          botaoDel.className = "excluir";
+          botaoDel.textContent = "🗑️ Excluir";
+          botaoDel.onclick = async () => {
+            if (confirm("Excluir este pedido?")) await deleteDoc(doc(db, "pedidos", p.id));
+          };
+
+          div.appendChild(botaoZap);
+          div.appendChild(botaoDel);
+          bloco.appendChild(div);
+
+          new QRious({
+            element: document.getElementById(`qr-${p.id}`),
+            value: `Nome: ${p.evento.nomecliente}\nCPF: ${p.cpf}\nEvento: ${evento}\nCódigo: ${codigo}`,
+            size: 100
+          });
+        });
+        lista.appendChild(bloco);
+      });
+    }
+
+    window.gerarRelatorioPDF = () => {
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF();
+      let y = 20;
+      document.querySelectorAll(".card").forEach(card => {
+        const texto = card.innerText.split("\n");
+        texto.forEach((linha, i) => pdf.text(linha, 10, y + (i * 6)));
+        const canvas = card.querySelector("canvas");
+        if (canvas) {
+          const imgData = canvas.toDataURL("image/png");
+          pdf.addImage(imgData, "PNG", 150, y, 30, 30);
+        }
+        y += 50;
+        if (y > 270) { pdf.addPage(); y = 20; }
+      });
+      pdf.save("relatorio-pedidos.pdf");
+    };
+  </script>
+</body>
+</html>
