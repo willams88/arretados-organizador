@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Excluir Pedidos</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fdfcf9;
+      padding: 20px;
+    }
+    .pedido {
+      background: #fff;
+      border: 1px solid #ddd;
+      margin-bottom: 10px;
+      padding: 15px;
+      border-radius: 5px;
+    }
+    button {
+      padding: 6px 10px;
+      background: #e74c3c;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h2>🗑️ Exclusão de Pedidos</h2>
+  <div id="listaPedidos">Carregando pedidos...</div>
+
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.11.0/firebase-firestore.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCgFN0lCf0xeJaLnWkTfjAbvDBwQXxXe0A",
+      authDomain: "arretados-ingressos-app.firebaseapp.com",
+      projectId: "arretados-ingressos-app"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    const listaPedidos = document.getElementById("listaPedidos");
+
+    function excluirPedido(id) {
+      if (confirm("Tem certeza que deseja excluir este pedido?")) {
+        db.collection("pedidos").doc(id).delete()
+          .then(() => console.log("✅ Pedido excluído"))
+          .catch((err) => console.error("Erro:", err));
+      }
+    }
+
+    db.collection("pedidos").onSnapshot((snapshot) => {
+      listaPedidos.innerHTML = "";
+      if (snapshot.empty) {
+        listaPedidos.innerHTML = "<p>Nenhum pedido encontrado.</p>";
+        return;
+      }
+      snapshot.forEach((doc) => {
+        const dados = doc.data();
+        const div = document.createElement("div");
+        div.className = "pedido";
+        div.innerHTML = `
+          <strong>${dados.evento?.nomecliente || "Sem Nome"}</strong><br>
+          CPF: ${dados.cpf}<br>
+          Evento: ${dados.evento?.nomeEvento || "-"}<br>
+          Status: ${dados.evento?.status || "-"}<br>
+          WhatsApp: ${dados.evento?.whatsapp || "-"}<br>
+          Data: ${dados.evento?.data || "-"}<br>
+          Local: ${dados.evento?.local || "-"}<br><br>
+          <button onclick="excluirPedido('${doc.id}')">🗑️ Excluir</button>
+        `;
+        listaPedidos.appendChild(div);
+      });
+    });
+  </script>
+</body>
+</html>
