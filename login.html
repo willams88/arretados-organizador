@@ -1,49 +1,75 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login do Organizador</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="style.css">
   <style>
-    .login-container {
-      max-width: 400px;
-      margin: 100px auto;
-      background: white;
+    body {
+      background: #fff8e1;
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .login-box {
+      background: #fff;
       padding: 2rem;
       border-radius: 10px;
       box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    body.dark .login-container {
-      background: #1e1e1e;
-    }
-    h1 {
+      width: 300px;
       text-align: center;
+    }
+    input {
+      width: 100%;
+      padding: 0.7rem;
+      margin: 0.5rem 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    button {
+      width: 100%;
+      padding: 0.7rem;
+      background: #4caf50;
+      border: none;
+      color: white;
+      font-weight: bold;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .logo {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 1rem;
     }
   </style>
 </head>
 <body>
-  <div class="login-container">
-    <h1>Organizador</h1>
-    <label>Senha de acesso:</label>
-    <input type="password" id="senha" placeholder="Digite a senha" />
-    <button onclick="logar()">Entrar</button>
+  <div class="login-box">
+    <img src="logo-arretados.png" alt="Logo Arretados" class="logo">
+    <h2>Arretados Produções</h2>
+    <input type="email" id="email" placeholder="Digite seu e-mail">
+    <input type="password" id="senha" placeholder="Digite sua senha">
+    <button onclick="verificarLogin()">Entrar</button>
   </div>
 
   <script>
-    function logar() {
-      const senha = document.getElementById("senha").value;
-      if (senha === "arretados2024") {
-        localStorage.setItem("autenticado", "true");
-        window.location.href = "index.html";
-      } else {
-        alert("❌ Senha incorreta!");
-      }
-    }
+    const emailCorreto = "organizador@arretados.com";
+    const senhaCorreta = "93679605";
 
-    // Redireciona se já estiver logado
-    if (localStorage.getItem("autenticado") === "true") {
-      window.location.href = "index.html";
+    function verificarLogin() {
+      const email = document.getElementById("email").value.trim();
+      const senha = document.getElementById("senha").value.trim();
+
+      if (email === emailCorreto && senha === senhaCorreta) {
+        localStorage.setItem("acessoOrganizador", "autorizado");
+        window.location.href = "painel.html";
+      } else {
+        alert("❌ E-mail ou senha incorretos!");
+      }
     }
   </script>
 </body>
