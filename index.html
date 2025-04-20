@@ -1,0 +1,190 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+
+  <link rel="icon" type="image/jpeg" href="logo-arretados.jpeg" />
+
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel do Organizador</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+</head>
+<body>
+
+
+<header style="background: #ffc107; padding: 1rem 0; display: flex; justify-content: center; align-items: center; gap: 1rem;">
+  <img src="logo-arretados.jpeg" alt="Logo" style="height: 50px; border-radius: 50%; margin-left: 1rem;" />
+  <div style="background: #ffca28; padding: 0.5rem 1.5rem; border-radius: 6px;">
+    <h1 style="margin: 0; font-size: 1.4rem; font-weight: bold; color: #000;">🦎 Arretados Produções</h1>
+  </div>
+</header>
+
+
+
+
+>
+  <div style='display:flex;align-items:center;gap:10px;'><img src='logo-arretados.jpeg' alt='Logo' style='height:60px;border-radius:50%;'><h1>🎟️ Painel do Organizador</h1></div>
+
+  <section id="filtros">
+    <input id="filtroNome" placeholder="Buscar por nome" />
+    <input id="filtroCPF" placeholder="Buscar por CPF" />
+    <select id="filtroEvento"></select>
+    <input type="date" id="filtroData" />
+<select id="filtroStatus">
+      <option value="">Todos</option>
+      <option value="pendente">Pendente</option>
+      <option value="validado">Validado</option>
+    </select>
+    
+    <button onclick="exportarPDF()">Exportar PDF</button>
+  </section>
+
+  <div id="totalizador" style="margin: 1rem 0; font-weight: bold;"></div>
+<section id="lista-pedidos"></section>
+
+  <template id="template-pedido">
+    <div class="pedido">
+      <h3><span class="nome"></span> - <span class="evento"></span></h3>
+      <p>CPF: <span class="cpf"></span></p>
+      <p>Status: <span class="status"></span></p>
+      <div class="qrcode"></div>
+      <p>Código: <span class="codigo"></span></p>
+      <div class="acoes">
+        <button class="validar">✅ Validar</button>
+        <button class="reenviar">📲 WhatsApp</button>
+        <button class="excluir">🗑️ Excluir</button>
+        <button class="visualizar">🖼️ Visualizar</button>
+      </div>
+    </div>
+  </template>
+
+  <!-- Modal visual do ingresso -->
+  <div id="modalIngresso" class="modal" style="display:none;">
+    <div id="ingressoVisual" class="ingresso-card" style="background:#fff;padding:1rem;border-radius:10px;text-align:center;"></div>
+    <div style="text-align:center;margin-top:10px;">
+      <button id="btnFechar">❌ Fechar</button>
+      <button id="btnBaixar">📥 Baixar imagem</button>
+    </div>
+  </div>
+
+  <script src="firebase.js"></script>
+  <script src="acoes.js"></script>
+  <script src="exportar.js"></script>
+  <script src="filtros.js"></script>
+  <script>
+    document.addEventListener("click", async function (e) {
+      if (e.target.classList.contains("visualizar")) {
+        const card = e.target.closest(".pedido");
+        const nome = card.querySelector(".nome").textContent;
+        const cpf = card.querySelector(".cpf").textContent;
+        const evento = card.querySelector(".evento").textContent;
+        const status = card.querySelector(".status").textContent;
+        const codigo = card.querySelector(".codigo").textContent;
+
+        const container = document.getElementById("ingressoVisual");
+        container.innerHTML = `
+          <h2>${evento}</h2>
+          <p><strong>Nome:</strong> ${nome}</p>
+          <p><strong>CPF:</strong> ${cpf}</p>
+          <p><strong>Status:</strong> ${status}</p>
+          <p><strong>Código:</strong> ${codigo}</p>
+          <div id='qrVisual'></div>
+        `;
+
+        const canvasQR = document.createElement("canvas");
+        await QRCode.toCanvas(canvasQR, JSON.stringify({ nome, cpf, evento, status, codigo }));
+        document.getElementById("qrVisual").innerHTML = "";
+        document.getElementById("qrVisual").appendChild(canvasQR);
+
+        document.getElementById("modalIngresso").style.display = "block";
+      }
+    });
+
+    document.getElementById("btnFechar").onclick = () => {
+      document.getElementById("modalIngresso").style.display = "none";
+    };
+
+    document.getElementById("btnBaixar").onclick = () => {
+      html2canvas(document.getElementById("ingressoVisual")).then(canvas => {
+        const link = document.createElement("a");
+        link.download = "ingresso.png";
+        link.href = canvas.toDataURL();
+        link.click();
+      });
+    };
+  </script>
+
+<!-- Modal visual do ingresso -->
+<div id="modalIngresso" class="modal" style="display:none;">
+  <div id="ingressoVisual" class="ingresso-card" style="
+    background: #fff8dc;
+    padding: 1rem;
+    border-radius: 16px;
+    border: 3px dashed #d62382;
+    text-align: center;
+    font-family: 'Segoe UI', sans-serif;
+    width: 320px;
+    margin: auto;
+    position: relative;
+    box-shadow: 0 0 15px rgba(0,0,0,0.3);
+  ">
+    <img src='logo-arretados.jpeg' alt='Logo Arretados' style='width:120px;margin-bottom:10px;' />
+    <!-- conteúdo dinâmico aqui via JS -->
+  </div>
+  <div style="text-align:center;margin-top:10px;">
+    <button id="btnFechar" style="background:#d32f2f;color:white;border:none;padding:0.5rem 1rem;border-radius:6px;">❌ Fechar</button>
+    <button id="btnBaixar" style="background:#388e3c;color:white;border:none;padding:0.5rem 1rem;border-radius:6px;">📥 Baixar imagem</button>
+  </div>
+</div>
+
+<script>
+  document.addEventListener("click", async function (e) {
+    if (e.target.classList.contains("visualizar")) {
+      const card = e.target.closest(".pedido");
+      const nome = card.querySelector(".nome").textContent;
+      const cpf = card.querySelector(".cpf").textContent;
+      const evento = card.querySelector(".evento").textContent;
+      const status = card.querySelector(".status").textContent;
+      const codigo = card.querySelector(".codigo").textContent;
+
+      const container = document.getElementById("ingressoVisual");
+      container.innerHTML = `
+        <img src='logo-arretados.jpeg' alt='Logo Arretados' style='width:120px;margin-bottom:10px;' />
+        <h2 style='color:#d62382'>${evento}</h2>
+        <p><strong>Nome:</strong> ${nome}</p>
+        <p><strong>CPF:</strong> ${cpf}</p>
+        <p><strong>Status:</strong> <span style='color:${status === 'validado' ? 'green' : 'red'}'>${status}</span></p>
+        <p><strong>Código:</strong> ${codigo}</p>
+        <div id='qrVisual' style='margin-top:10px;'></div>
+      `;
+
+      const canvasQR = document.createElement("canvas");
+      await QRCode.toCanvas(canvasQR, JSON.stringify({ nome, cpf, evento, status, codigo }));
+      document.getElementById("qrVisual").innerHTML = "";
+      document.getElementById("qrVisual").appendChild(canvasQR);
+
+      document.getElementById("modalIngresso").style.display = "block";
+    }
+  });
+
+  document.getElementById("btnFechar").onclick = () => {
+    document.getElementById("modalIngresso").style.display = "none";
+  };
+
+  document.getElementById("btnBaixar").onclick = () => {
+    html2canvas(document.getElementById("ingressoVisual")).then(canvas => {
+      const link = document.createElement("a");
+      link.download = "ingresso.png";
+      link.href = canvas.toDataURL();
+      link.click();
+    });
+  };
+</script>
+
+</body>
+</html>

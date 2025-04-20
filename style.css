@@ -1,0 +1,81 @@
+
+body {
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #fff8e1;
+  color: #111;
+  margin: 0;
+  padding: 1rem;
+}
+
+header, h1 {
+  background-color: #ffc107;
+  color: #000;
+  padding: 1rem;
+  text-align: center;
+}
+
+#filtros {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+#filtros input, #filtros select, #filtros button {
+  padding: 0.5rem;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  min-width: 120px;
+}
+
+button {
+  background-color: #ffc107;
+  color: #000;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #ffca28;
+}
+
+.pedido {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 0 8px rgba(0,0,0,0.1);
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.status.pendente {
+  color: red;
+  font-weight: bold;
+}
+.status.validado {
+  color: green;
+  font-weight: bold;
+}
+
+.qrcode canvas {
+  width: 100px;
+  height: 100px;
+  margin-top: 0.5rem;
+}
+
+.acoes {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  #filtros {
+    flex-direction: column;
+  }
+  .acoes {
+    flex-direction: column;
+  }
+}
